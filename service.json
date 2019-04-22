@@ -1,0 +1,21 @@
+{
+    "service_name": "\u51b7\u623f\u30b5\u30fc\u30d3\u30b9",
+    "service_id": "0001",
+    "create_date": "2019/01/27",
+    "device_list": [
+        {
+            "device_name": "temp_sensor",
+            "device_id": "000001",
+            "condition": "24",
+            "mode": "monitoring"
+        },
+        {
+            "device_name": "air_conditioner",
+            "device_id": "000002",
+            "state": "on",
+            "mode": "cooling",
+            "set_param": "24",
+            "func_uri": "/from/sensor"
+        }
+    ]
+}
