@@ -103,7 +103,7 @@ class HomeServer:
         app.router.add_get('/from/sensor', self.msg_print)
         app.router.add_get('/from/sensor/{sensor_data}', self.data_print)
 
-        # 本機能
+        # サービスの読み込み
         app.router.add_get('/server/load_service', self.load_service)
 
         web.run_app(app, host='127.0.0.1', port=8010)

@@ -9,24 +9,18 @@ class SmartSensor:
         self.sensor_data = 0
         self.push_condition = 500
 
-    #
     #条件データの格納
-    #
     def condition_set(self):
         print('受け取ったデータを条件にセットします。')
         print('現在の条件：')
 
-    #
     # センサーデータ生成
-    #
     def data_create(self):
         self.sensor_data = (random.uniform(10, 30))
         self.sensor_data = round(self.sensor_data, 1)
         return self.sensor_data
 
-    #
     # HTTP通信のポート定義
-    #
     async def http_client(self, host, port, msg, loop):
         reader, writer = await asyncio.open_connection(
             host, port, loop=loop
@@ -37,10 +31,7 @@ class SmartSensor:
         print(f'Received: {data.decode()}')
         writer.close()
 
-    #
-    #外部との通信
-    #
-
+    # 外部との通信
     # サーバから条件となる値を格納する
     def get_condition(self,request):
         host = '127.0.0.1'
