@@ -1,7 +1,7 @@
 import asyncio
 
 
-class SensorDataSet:
+class SensorController:
     async def http_client(self, host, port, msg, loop):
         reader, writer = await asyncio.open_connection(
             host, port, loop=loop
@@ -12,16 +12,13 @@ class SensorDataSet:
         print(f'Received: {data.decode()}')
         writer.close()
 
-
-    def create_data(self):
-        data = 0
-        print('センサーへ送る値を入力(0~99)')
-        data = input()
-        print('センサーへ入力する値：' + data)
+    def test_data_create(self):
+        test_data = input()
+        print('センサーへ入力する値：' + test_data)
         host = '127.0.0.1'
-        port = 8010
+        port = 8020
         msg = (
-            f'GET /server/load_service HTTP/1.1\r\n'
+            f'GET /sensor/test_data_create/{test_data} HTTP/1.1\r\n'
             'Host: localhost:8010\r\n'
             '\r\n'
             '\r\n'
@@ -31,11 +28,10 @@ class SensorDataSet:
         loop.run_until_complete(self.http_client(host, port, msg, loop))
         loop.close()
 
-
     def main(self):
-        print(1)
-        self.create_data()
+        self.test_data_create()
+
 
 if __name__ == '__main__':
-    dataset = SensorDataSet()
-    dataset.main()
+    sensor_c = SensorController()
+    sensor_c.main()

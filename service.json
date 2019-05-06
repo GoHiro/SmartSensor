@@ -6,12 +6,14 @@
         {
             "device_name": "temp_sensor",
             "device_id": "000001",
+            "port": "8020",
             "condition": "24",
-            "mode": "monitoring"
+            "mode": "default"
         },
         {
             "device_name": "air_conditioner",
             "device_id": "000002",
+            "port": "8030",
             "state": "on",
             "mode": "cooling",
             "set_param": "24",
