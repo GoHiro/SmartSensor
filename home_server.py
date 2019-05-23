@@ -19,7 +19,11 @@ class HomeServer:
         self.smart_sensor_condition = 0
         self.smart_appliance_port = 0
         self.smart_appliance_power = ''
+        self.smart_appliance_name = ''
+        self.smart_appliance_send_param = ''
+        self.smart_appliance_mode = ''
         self.service = []
+        self.l_value = []
 
         self.kaden = 0
         self.state = 0
@@ -32,13 +36,13 @@ class HomeServer:
         self.dict = {}
 
         # csv
-        self.f = open('data.csv', 'r')
-        self.reader = csv.reader(self.f)
-        for row in self.reader:
-            self.l_value = [row[1], row[2], row[3]]  # 学習リモコンの on/off の 値も読み込めるようにする
-            self.dict.update({row[0]: self.l_value})
-            print(self.dict)
-        ###
+        # self.f = open('data.csv', 'r')
+        # self.reader = csv.reader(self.f)
+        # for row in self.reader:
+        #    self.l_value = [row[1], row[2], row[3]]  # 学習リモコンの on/off の 値も読み込めるようにする
+        #    self.dict.update({row[0]: self.l_value})
+        #    print(self.dict)
+
         self.ser = serial.Serial('/dev/ttyUSB0', 115200, timeout = 3)
         self._LED = pack('B', 0x69)  # LED 点灯
         self._RECEIVE = pack('B', 0x72)  # 送信
@@ -76,7 +80,6 @@ class HomeServer:
 
     def change_settei(self, k_settei):
         data = str(' ' + k_settei)
-
         self.settei = data
 
     def change_channel(self, c_settei):
@@ -155,6 +158,18 @@ class HomeServer:
             print(self.service)
             print("smart_sensor_condition = " + str(self.smart_sensor_condition))
             print("smart_appliance_state = " + self.smart_appliance_power)
+            self.smart_appliance_name = data['device_list'][1]['device_name']
+            print(self.smart_appliance_name)
+            self.smart_appliance_send_param = data['device_list'][1]['send_param']
+            print(self.smart_appliance_send_param)
+            self.smart_appliance_mode = data['device_list'][1]['send_param']
+            print(self.smart_appliance_mode)
+
+            # 学習リモコンの on/off の 値も読み込めるようにする
+            self.l_value = [self.smart_appliance_name, self.smart_appliance_mode, self.smart_appliance_send_param]
+            self.dict.update({self.smart_appliance_power: self.l_value})
+            print(self.dict)
+
             await self.set_condition()
 
     # センサーへself.sensor_conditionを送信する
@@ -209,7 +224,7 @@ class HomeServer:
         host = '127.0.0.1'
         port = self.smart_appliance_port
         appliance_power = self.smart_appliance_power
-        print('家電へAPIを送信します')
+        print('家電へ制御シリアルを送信します')
         msg = (
             f'GET /appliance/appliance_power_switch/{appliance_power} HTTP/1.1\r\n'
             'Host: localhost:8010\r\n'
@@ -217,8 +232,10 @@ class HomeServer:
             '\r\n'
         )
 
+        self.diction(appliance_power)
+
         loop = asyncio.get_event_loop()
-        loop.create_task(self.http_client(host, port, msg, loop))
+        await loop.create_task(self.http_client(host, port, msg, loop))
         # loop.run_until_complete(self.http_client(host, port, msg, loop)
         # loop.close()
         return web.Response(text='ok')
@@ -233,7 +250,7 @@ class HomeServer:
     async def handle_poll(self, request):
         text = "kaden " + str(self.kaden) + "¥n"
         text2 = "state " + str(self.state) + "¥n"
-        text3 = "chanel " + str(self.chanel) + "¥n"
+        text3 = "chanel " + str(self.channel) + "¥n"
         text4 = "temp " + str(self.temp) + "¥n"
         text5 = "vol " + str(self.vol) + "¥n"
         text6 = "time " + str(self.time) + "¥n"

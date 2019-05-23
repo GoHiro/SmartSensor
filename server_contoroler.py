@@ -44,8 +44,8 @@ class ServerController:
         loop.close()
 
     def main(self):
-        self.msg_test()
-        #self.load_service()
+        #self.msg_test()
+        self.load_service()
 
 
 if __name__ == '__main__':
