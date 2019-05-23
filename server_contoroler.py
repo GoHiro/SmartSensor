@@ -31,8 +31,9 @@ class ServerController:
         print('test')
         host = '127.0.0.1'
         port = 8010
+        buff1 = "tv_on"
         msg = (
-            f'GET /server/msg_test HTTP/1.1\r\n'
+            f'GET /event_broadcast/{buff1} HTTP/1.1\r\n'
             'Host: localhost:8010\r\n'
             '\r\n'
             '\r\n'
@@ -43,8 +44,8 @@ class ServerController:
         loop.close()
 
     def main(self):
-        # self.msg_test()
-        self.load_service()
+        self.msg_test()
+        #self.load_service()
 
 
 if __name__ == '__main__':
