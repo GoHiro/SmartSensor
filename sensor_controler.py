@@ -13,7 +13,7 @@ class SensorController:
         writer.close()
 
     def test_data_create(self):
-        test_data = input()
+        test_data = input('センサーへ入力する値：')
         print('センサーへ入力する値：' + test_data)
         host = '127.0.0.1'
         port = 8020
