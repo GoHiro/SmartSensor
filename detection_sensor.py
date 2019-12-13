@@ -1,4 +1,12 @@
+import time
+import RPi.GPIO as GPIO
 import asyncio
+
+
+class DevInfo:
+    def __init__(self):
+        self.serial_number = 'IRSensor C'
+        self.function_name = 'DetectionStatus'
 
 
 def data_insert_format(send_data):
@@ -18,31 +26,19 @@ def replace_reserved_strings(res_str):
   return res_str
 
 
-class DevInfo:
-    def __init__(self):
-        """define sendig message here"""
-        self.serial_number = 'TempSensor C'
-        self.function_name = 'TemperatureMeasurementValue'
-        self.value = '20'
-
-class SensorController:
+class DetectionSensor:
     async def http_client(self, host, port, msg, loop):
-        reader, writer = await asyncio.open_connection(
-            host, port, loop=loop
-        )
-
+        reader, writer = await asyncio.open_connection(host,
+                                                       port,
+                                                       loop=loop)
         writer.write(msg.encode())
         data = await reader.read()
-        print(f'Received: {data.decode()}')
+        print(f'Recieved: {data.decode()}')
         writer.close()
 
-    def test_data_create(self):
-        dev_info = DevInfo()
-        test_data = dev_info.value
-        test_data = data_insert_format(test_data)
-        print(test_data)
-        test_data = replace_reserved_strings(test_data)
-        print('センサーへ入力する値：' + test_data)
+    def detection_sender(self, detection_status):
+        test_data = str(detection_status)
+        print('send value: ' + test_data)
         host = '169.254.137.173'
         port = 8020
         msg = (
@@ -51,15 +47,33 @@ class SensorController:
             '\r\n'
             '\r\n'
         )
-
+        asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.http_client(host, port, msg, loop))
         loop.close()
 
-    def main(self):
-        self.test_data_create()
 
+SLEEP_TIME = 1
+COOL_DOWN_TIME = 300
+SENSOR_GPIO = 5
+
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(SENSOR_GPIO, GPIO.IN)
 
 if __name__ == '__main__':
-    sensor_c = SensorController()
-    sensor_c.main()
+    detection = DetectionSensor()
+    while True:
+        if GPIO.input(SENSOR_GPIO) == GPIO.HIGH:
+            send_data = data_insert_format('True')
+            send_data = str(send_data)
+            send_data = replace_reserved_strings(send_data)
+            print(send_data)
+            detection.detection_sender(send_data)
+            print('DetectionSensor: True')
+            print(f'sleep_time: {COOL_DOWN_TIME}')
+            time.sleep(COOL_DOWN_TIME)
+        else:
+            print('DetectionSensor: False')
+        time.sleep(SLEEP_TIME)
+GPIO.cleanup()
