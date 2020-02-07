@@ -63,6 +63,7 @@ GPIO.setup(SENSOR_GPIO, GPIO.IN)
 
 if __name__ == '__main__':
     detection = DetectionSensor()
+    detection_flag = 30
     while True:
         if GPIO.input(SENSOR_GPIO) == GPIO.HIGH:
             send_data = data_insert_format('True')
@@ -71,9 +72,20 @@ if __name__ == '__main__':
             print(send_data)
             detection.detection_sender(send_data)
             print('DetectionSensor: True')
+            detection_flag = 30  # detection_flag is similarly TTL that http reset timer
             print(f'sleep_time: {COOL_DOWN_TIME}')
             time.sleep(COOL_DOWN_TIME)
         else:
             print('DetectionSensor: False')
+            if detection_flag != 0:
+                detection_flag -= 1
+                print(detection_flag)
+            elif detection_flag == 0:
+                detection_flag = 300
+                send_data = data_insert_format('False')
+                send_data = str(send_data)
+                send_data = replace_reserved_strings(send_data)
+                print(send_data)
+                detection.detection_sender(send_data)
         time.sleep(SLEEP_TIME)
 GPIO.cleanup()

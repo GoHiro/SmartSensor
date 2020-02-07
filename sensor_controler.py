@@ -18,12 +18,13 @@ def replace_reserved_strings(res_str):
   return res_str
 
 
+
 class DevInfo:
     def __init__(self):
         """define sendig message here"""
         self.serial_number = 'TempSensor C'
         self.function_name = 'TemperatureMeasurementValue'
-        self.value = '20'
+        self.value = '2'
 
 class SensorController:
     async def http_client(self, host, port, msg, loop):

@@ -3,8 +3,6 @@ import random
 import asyncio
 import ast
 from pprint import pprint
-import json
-from async_timeout import timeout
 
 
 async def get_data_of_specified_key(target_data: object, key_to_target_data: object) -> object:
@@ -12,39 +10,6 @@ async def get_data_of_specified_key(target_data: object, key_to_target_data: obj
         target_data = target_data[key]
 
     return target_data
-
-"""async def search_target_function(target_data, key_to_target_data, target_function):
-    for key in key_to_target_data:
-        key_count = 1
-        if isinstance(target_data, dict):
-            target_data = target_data[key]
-            key_count += 1
-        if isinstance(target_data, list):
-            next_key = key_to_target_data[key_count]
-            if next_key == 'ns2:Value':
-                matched_number = await search_matched_dict_with_function_name(target_data, target_function)
-                target_data = target_data[matched_number]
-                key_count += 1
-
-    return target_data
-
-# return list number that has matched function_name
-async def search_matched_dict_with_function_name(list):
-    for i in range(len(list)):
-        dict_in_list = list[i]
-        if dict_in_list['pc:FunctionName'] == target_function:
-            matched_function_number = i
-            break
-
-    return matched_function_number
-
-async def search_specified_value_and_get_data(under_key, target_data, search_key, search_value):
-
-    for dict in target_data:
-        if dict[search_key] == search_value:
-            target_data = get_data_of_specified_key(dict, under_key)
-
-    return target_data"""
 
 
 async def replace_reserved_strings(res_str):
@@ -74,12 +39,11 @@ class SmartSensor:
         self.create_table_flag = 0
         self.recv_data = {}
         self.condition_dict = {}
-        self.key_to_value = [0 ,'ns2:Value']
+        self.key_to_value = [0, 'ns2:Value']
         self.target_dict = ''
         self.target_function = ''
+        self.latest_sensor_list = []
 
-
-    # HTTP通信のポート定義
     async def http_client(self, host, port, msg, loop):
         reader, writer = await asyncio.open_connection(
             host, port, loop=loop
@@ -142,10 +106,13 @@ class SmartSensor:
             pprint(self.condition_dict)
             if self.condition_dict == {}:
                 self.condition_dict = self.recv_data
-                print('self.condition_dict: ' + f'{self.condition_dict}')
+                print('condition_dict')
+                pprint(self.condition_dict)
                 print(type(self.condition_dict))
+            await self.is_serial_function_existance()
             await self.check_type_of_recv_data()
             await self.is_value_list_existance()
+            print('<condition_dict>')
             pprint(self.condition_dict)
         return web.Response(text='ok')
 
@@ -156,11 +123,28 @@ class SmartSensor:
     async def set_dict_count(self, current_num):
         self.key_to_value = [current_num , "ns2:Value"]
 
+    async def is_serial_function_existance(self):
+
+        for recv_data in self.recv_data:
+            serial_function_flag = False
+            for condition_dict in self.condition_dict:
+                if recv_data['ns2:SerialNumber'] == condition_dict['ns2:SerialNumber'] and \
+                    recv_data['pc:FunctionName'] == condition_dict['pc:FunctionName']:
+                    serial_function_flag = True
+            if not serial_function_flag:
+                self.condition_dict.append(recv_data)
+
+
     async def is_value_list_existance(self):
         dict_count = len(self.recv_data)
         condition_count = len(self.condition_dict)
         for current_num in range(dict_count):
             await self.set_dict_count(current_num)
+            print('-condition_dict-')
+            pprint(self.condition_dict)
+            pprint(self.recv_data)
+            print(f'dict_count: {dict_count}')
+            print(self.key_to_value)
             judge_dict = await get_data_of_specified_key(self.condition_dict,
                                                          self.key_to_value)
 
@@ -215,16 +199,6 @@ class SmartSensor:
 
         return translate_value
 
-    # create or update condition of notification here
-    """
-    辞書キーの並び替え、ns2:Valueを変換
-    notification_condition_table = {'SerialNumber': 'IRSensor C',
-                                    'Function': {'FunctionName':'DetectionStatus' 
-                                                ,'Value':{'type': ,
-                                                          'text': ,
-                                                          'ValueList': ['==True']}}}                                               
-    """
-
     async def create_test_data(self, request):
         # please compare sensor_data with adapted condition
         # if matched data found, matched data send back to homeserver
@@ -233,8 +207,33 @@ class SmartSensor:
         sensor_data = ast.literal_eval(sensor_data)
         print(f'sensor_data: {sensor_data}')
         self.sensor_dict = sensor_data
+        await self.check_existence_sensor_data(sensor_data)
         await self.search_same_value()
         return web.Response(text='ok')
+
+    async def check_existence_sensor_data(self, sensor_data):
+        not_append_flag = False
+        if not self.latest_sensor_list:
+            await self.append_sensor_data_forming(sensor_data)
+        else:
+            for latest_sensor_data in self.latest_sensor_list:
+                if latest_sensor_data.get(sensor_data['SerialNumber']):
+                    if latest_sensor_data[sensor_data['SerialNumber']].get(sensor_data['Function']['FunctionName']):
+                        not_append_flag = True
+            if not not_append_flag:
+                await self.append_sensor_data_forming(sensor_data)
+
+    async def append_sensor_data_forming(self, sensor_data):
+        append_serial = sensor_data['SerialNumber']
+        append_function_name = sensor_data['Function']['FunctionName']
+        append_value = sensor_data['Function']['Value']
+        append_data = {append_serial: {append_function_name: append_value}}
+        await self.add_append_sensor_data(append_data)
+
+    async def add_append_sensor_data(self, append_data):
+        print(f'append_data: {append_data}')
+        self.latest_sensor_list.append(append_data)
+        print(f'latest_sensor_list: {self.latest_sensor_list}')
 
     async def search_same_value(self):
         # sensor_data = ['IRSensor C', 'DetectionStatus', 'True']
@@ -271,7 +270,6 @@ class SmartSensor:
                                                  key_to_value_in_sensor)
         value_list = await get_data_of_specified_key(part_of_condition,
                                                key_to_value_in_condition)
-        # todo: for value in value_list: if each condition is true, send sensor_data to home_server
         for value in value_list:
             str = sensor_value + value
             if eval(str):
@@ -303,9 +301,26 @@ class SmartSensor:
             '\r\n'
         )
 
-        loop = asyncio.get_event_loop()  # get_loop
-        loop.run_until_complete(self.http_client(host, port, msg, loop))  # until_get_complete
-        loop.close()
+        loop = asyncio.get_running_loop()  # get_loop
+        loop.create_task(self.http_client(host, port, msg, loop))  # until_get_complete
+
+
+    async def send_latest_value_list(self):
+        host = '169.254.12.61'
+        port = 8010
+        print('条件を満たしました。通知を行います。')
+        sensor_data = await replace_reserved_strings(str(self.latest_sensor_list))
+        print(self.latest_sensor_list)
+        msg = (
+            f'GET /server/sensor_value_for_after_condition/{sensor_data} HTTP/1.1\r\n'
+            'Host: localhost:8020\r\n'
+            '\r\n'
+            '\r\n'
+        )
+
+        loop = asyncio.get_running_loop()  # get_loop
+        loop.create_task(self.http_client(host, port, msg, loop))  # until_get_complete
+
 
     """
     condition_dict translate 
@@ -317,18 +332,24 @@ class SmartSensor:
     type = 'upper'
     if type == 'upper':
         expression = '>' + f'{value}'
-    expression
+    expressioncheck_tipy
     '>23'
     measured_value = 25
     compare_expression = f'{measured_value}' + f'{expression}'
     eval(compare_expression)
     True"""
 
+    async def get_current_sensor_value_from_smart_sensor(self, request):
+        if self.send_latest_value_list:
+            await self.send_latest_value_list()
+
     def main(self):
         print('Starting Smart Sensor...')
         app = web.Application()
         app.router.add_get('/sensor/set_condition/{sensor_condition}', self.set_condition)
+
         app.router.add_get('/sensor/test_data_create/{test_data}', self.create_test_data)
+        app.router.add_get('/sensor/get_current_sensor_value_from_smart_sensor', self.get_current_sensor_value_from_smart_sensor)
         web.run_app(app, host='169.254.137.173', port=8020)
 
 
